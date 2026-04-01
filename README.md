@@ -1,99 +1,100 @@
-# gh-agent
+# gh-mcp
 
-A model that owns a GitHub account. Give it a task, it figures out the steps.
+Full GitHub control as an MCP server. Every capability GitHub exposes,
+available to any AI agent that speaks MCP — Claude, GPT-4, Gemini, or
+your own coordinator.
 
-## What it is
+## What this is
 
-Three files, each independently useful:
+An MCP server that gives AI agents complete, first-class access to GitHub.
+Not a wrapper around another library — raw GitHub API calls, clean responses,
+and a module per domain so you can extend or audit any piece independently.
 
-```
-github_tools.py   ← full GitHub control, no model dependency
-agent_loop.py     ← generic tool-calling loop, not GitHub-specific  
-main.py           ← entry point, reads .env, runs
-```
+## What's built
+
+| Module | Capabilities |
+|---|---|
+| `identity` | whoami, rate limit |
+| `repos` | create, update, delete, fork, topics, branches, tags, commits |
+| `files` | read, write, delete, upsert, tree, raw |
+| `pulls` | create, review, merge, inline comments, reviewer requests |
+| `issues` | create, assign, label, milestone, comments |
+
+## Coming next
+
+- `actions` — trigger workflows, check run status, manage secrets
+- `releases` — create releases, upload assets
+- `discussions` — GraphQL-based discussions (create, reply, answer)
+- `orgs` — members, teams, permissions
+- `search` — cross-repo code, issue, and user search
 
 ## Setup
 
 ```bash
-pip install -r requirements.txt
+# requires Python 3.11+
+pip install uv
+uv sync
 cp .env.example .env
-# edit .env with your keys
+# add your GITHUB_TOKEN to .env
 ```
 
-**.env:**
-```
-GITHUB_TOKEN=your_pat_here
-ANTHROPIC_API_KEY=your_key_here
-```
-
-**GitHub PAT scopes needed:** `repo` (+ `delete_repo` if you want deletion)
+GitHub PAT scopes needed: `repo`, `read:org`, `read:user`
 Create at: github.com → Settings → Developer settings → Personal access tokens
 
-## Usage
+## Run
 
 ```bash
-# give it a task directly
-python main.py "create a repo called my-project with a proper README and a .gitignore for Python"
+# development — opens MCP inspector in browser
+mcp dev server.py
 
-# or interactive mode
-python main.py
-> what should i do?
+# stdio — for Claude Desktop or any stdio MCP client
+mcp run server.py
+
+# HTTP — for remote agents
+python server.py --transport http --port 8000
 ```
 
-## What the model can do
+## Connect to Claude Desktop
 
-- List, create, delete repos
-- Read any file in any repo
-- Create, update, delete files
-- Create branches
-- See commit history
-- Understand what already exists before acting
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
-## How it works
-
-```
-your task
-    ↓
-model sees task + available tools
-    ↓
-model calls tools (list repos, read files, etc.)
-    ↓
-your machine executes the calls with your token
-    ↓
-results go back to model
-    ↓
-model calls more tools or says done
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "python",
+      "args": ["/path/to/gh-mcp/server.py"],
+      "env": {
+        "GITHUB_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
 ```
 
-Token never leaves your machine. Model only sees tool results.
+## Architecture
 
-## Using just the GitHub tools (no model)
+```
+server.py              ← FastMCP entry point, mounts all modules
+github/
+  client.py            ← raw httpx REST + GraphQL, shared auth
+  repos.py             ← repo, branch, tag, commit tools
+  files.py             ← file read/write tools
+  pulls.py             ← PR and review tools
+  issues.py            ← issue and label tools
+  ...                  ← one file per domain
+```
+
+Each module has a `register(mcp, client, owner)` function.
+Adding a new capability = add a new module + one line in server.py.
+
+## Use without MCP (plain Python)
 
 ```python
-from github_tools import GitHubTools
+from github.client import GitHubClient
 
-gh = GitHubTools(token="your_pat")
-gh.list_repos()
-gh.create_repo("my-repo", description="test")
-gh.upsert_file("my-repo", "README.md", "# hello", "initial commit")
-gh.read_file("my-repo", "README.md")
+client = GitHubClient(token="your_pat")
+repos = client.rest("GET", "/user/repos")
 ```
 
-## Using a different model
-
-```python
-from github_tools import GitHubTools
-from agent_loop import run_agent
-
-gh = GitHubTools(token="your_pat")
-result = run_agent(
-    task="your task here",
-    tools=gh,
-    api_key="your_anthropic_key",
-    model="claude-sonnet-4-6",  # or any claude model
-)
-```
-
-## Adding more tools later
-
-`agent_loop.py` is not GitHub-specific. Any object with `tool_definitions()` and `execute_tool()` methods works. Later you can add filesystem tools, browser tools, etc. and pass them in the same way.
+The client is just httpx under the hood — no framework dependency.
