@@ -1,100 +1,29 @@
 # gh-mcp
 
-Full GitHub control as an MCP server. Every capability GitHub exposes,
-available to any AI agent that speaks MCP — Claude, GPT-4, Gemini, or
-your own coordinator.
+Full GitHub control as an MCP server.
 
-## What this is
+See **[docs/README.md](docs/README.md)** for full documentation.
 
-An MCP server that gives AI agents complete, first-class access to GitHub.
-Not a wrapper around another library — raw GitHub API calls, clean responses,
-and a module per domain so you can extend or audit any piece independently.
-
-## What's built
-
-| Module | Capabilities |
-|---|---|
-| `identity` | whoami, rate limit |
-| `repos` | create, update, delete, fork, topics, branches, tags, commits |
-| `files` | read, write, delete, upsert, tree, raw |
-| `pulls` | create, review, merge, inline comments, reviewer requests |
-| `issues` | create, assign, label, milestone, comments |
-
-## Coming next
-
-- `actions` — trigger workflows, check run status, manage secrets
-- `releases` — create releases, upload assets
-- `discussions` — GraphQL-based discussions (create, reply, answer)
-- `orgs` — members, teams, permissions
-- `search` — cross-repo code, issue, and user search
-
-## Setup
+## Quick start
 
 ```bash
-# requires Python 3.11+
-pip install uv
-uv sync
+pip install uv && uv sync
 cp .env.example .env
-# add your GITHUB_TOKEN to .env
-```
-
-GitHub PAT scopes needed: `repo`, `read:org`, `read:user`
-Create at: github.com → Settings → Developer settings → Personal access tokens
-
-## Run
-
-```bash
-# development — opens MCP inspector in browser
+# add GITHUB_TOKEN to .env
 mcp dev server.py
-
-# stdio — for Claude Desktop or any stdio MCP client
-mcp run server.py
-
-# HTTP — for remote agents
-python server.py --transport http --port 8000
 ```
 
-## Connect to Claude Desktop
+## What's included
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+| Module | Tools |
+|---|---|
+| identity | `whoami`, `get_rate_limit` |
+| repos | `list_repos`, `get_repo`, `create_repo`, `update_repo`, `delete_repo`, `fork_repo`, `get_topics`, `set_topics`, `list_branches`, `get_branch`, `create_branch`, `delete_branch`, `rename_branch`, `list_commits`, `get_commit`, `list_tags`, `create_tag` |
+| files | `list_files`, `read_file`, `create_file`, `update_file`, `upsert_file`, `delete_file`, `get_file_tree`, `get_raw_file` |
+| pulls | `list_pulls`, `get_pull`, `create_pull`, `update_pull`, `merge_pull`, `list_pull_files`, `get_pull_diff`, `list_reviews`, `create_review`, `request_reviewers`, `list_pull_comments`, `add_pull_comment`, `reply_to_review_comment` |
+| issues | `list_issues`, `get_issue`, `create_issue`, `update_issue`, `close_issue`, `list_issue_comments`, `add_issue_comment`, `update_issue_comment`, `delete_issue_comment`, `list_labels`, `create_label`, `add_labels_to_issue`, `remove_label_from_issue`, `list_milestones`, `create_milestone` |
+| actions | `list_workflows`, `get_workflow`, `trigger_workflow`, `enable_workflow`, `disable_workflow`, `list_workflow_runs`, `get_workflow_run`, `cancel_workflow_run`, `rerun_workflow`, `delete_workflow_run`, `list_run_jobs`, `get_job`, `get_job_logs`, `list_repo_secrets`, `delete_repo_secret`, `list_run_artifacts`, `delete_artifact`, `list_runners` |
+| releases | `list_releases`, `get_release`, `get_latest_release`, `get_release_by_tag`, `create_release`, `update_release`, `publish_release`, `delete_release`, `list_release_assets`, `delete_release_asset` |
+| search | `search_code`, `search_my_code`, `search_repos`, `search_issues`, `search_commits`, `search_users` |
 
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "python",
-      "args": ["/path/to/gh-mcp/server.py"],
-      "env": {
-        "GITHUB_TOKEN": "your_token_here"
-      }
-    }
-  }
-}
-```
-
-## Architecture
-
-```
-server.py              ← FastMCP entry point, mounts all modules
-github/
-  client.py            ← raw httpx REST + GraphQL, shared auth
-  repos.py             ← repo, branch, tag, commit tools
-  files.py             ← file read/write tools
-  pulls.py             ← PR and review tools
-  issues.py            ← issue and label tools
-  ...                  ← one file per domain
-```
-
-Each module has a `register(mcp, client, owner)` function.
-Adding a new capability = add a new module + one line in server.py.
-
-## Use without MCP (plain Python)
-
-```python
-from github.client import GitHubClient
-
-client = GitHubClient(token="your_pat")
-repos = client.rest("GET", "/user/repos")
-```
-
-The client is just httpx under the hood — no framework dependency.
+**164 tests, all passing.**

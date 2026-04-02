@@ -19,7 +19,10 @@ Environment:
 import os
 import sys
 import logging
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+
+load_dotenv()
 
 logging.basicConfig(
     stream=sys.stderr,
@@ -57,27 +60,24 @@ You can read and write to all repositories, manage pull requests,
 issues, releases, actions, and more.
 
 Always verify what exists before creating or modifying things.
-For destructive operations (delete repo, force push), state what
-you're about to do before doing it.
+For destructive operations (delete repo, force push, delete release),
+state what you're about to do before doing it.
+
+Use get_rate_limit to check your remaining quota before bulk operations.
 """.strip(),
     )
 
-    # register tools from each module
+    # ── register all modules ──────────────────────────────────────────
     _register_identity(mcp, client, owner)
 
-    from github import repos, files, pulls, issues
+    from github import repos, files, pulls, issues, actions, releases, search
     repos.register(mcp, client, owner)
     files.register(mcp, client, owner)
     pulls.register(mcp, client, owner)
     issues.register(mcp, client, owner)
-
-    # these modules will be added next
-    # from github import actions, releases, discussions, orgs, search
-    # actions.register(mcp, client, owner)
-    # releases.register(mcp, client, owner)
-    # discussions.register(mcp, client, owner)
-    # orgs.register(mcp, client, owner)
-    # search.register(mcp, client, owner)
+    actions.register(mcp, client, owner)
+    releases.register(mcp, client, owner)
+    search.register(mcp, client, owner)
 
     log.info(f"gh-mcp ready — {owner}")
     return mcp
@@ -113,7 +113,8 @@ def _register_identity(mcp: FastMCP, client, owner: str):
     def get_rate_limit() -> dict:
         """
         Check the current GitHub API rate limit status.
-        Useful before running bulk operations.
+        Call this before bulk operations. Core limit is 5000 req/hour authenticated.
+        Search has a separate limit of 30 req/min.
         """
         try:
             result = client.rest("GET", "/rate_limit")
@@ -125,6 +126,7 @@ def _register_identity(mcp: FastMCP, client, owner: str):
                     "limit": core["limit"],
                     "remaining": core["remaining"],
                     "reset_at": core["reset"],
+                    "used": core["limit"] - core["remaining"],
                 },
                 "search": {
                     "limit": search["limit"],

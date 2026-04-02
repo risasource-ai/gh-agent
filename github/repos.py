@@ -3,8 +3,6 @@ github/repos.py
 
 Everything repo-level: create, delete, get info, fork, topics,
 branches, tags, default branch changes.
-
-Each function is a plain async def — server.py registers them as MCP tools.
 """
 
 from .client import GitHubClient, GitHubError
@@ -30,7 +28,7 @@ def register(mcp, client: GitHubClient, owner: str):
         """
         try:
             repos = client.paginate(
-                f"/users/{owner}/repos",
+                "/user/repos",
                 params={"visibility": visibility, "sort": sort},
                 limit=limit,
             )
@@ -71,7 +69,7 @@ def register(mcp, client: GitHubClient, owner: str):
         license_template: e.g. "mit", "apache-2.0"
         """
         try:
-            body = {
+            body: dict = {
                 "name": name,
                 "description": description,
                 "private": private,
@@ -105,7 +103,7 @@ def register(mcp, client: GitHubClient, owner: str):
         Pass only the fields you want to change.
         """
         try:
-            body = {}
+            body: dict = {}
             if description is not None:
                 body["description"] = description
             if private is not None:
@@ -159,7 +157,7 @@ def register(mcp, client: GitHubClient, owner: str):
         new_name: optional new name for the fork
         """
         try:
-            body = {}
+            body: dict = {}
             if new_name:
                 body["name"] = new_name
             r = client.rest(
@@ -312,7 +310,7 @@ def register(mcp, client: GitHubClient, owner: str):
         limit: max commits to return (default 30)
         """
         try:
-            params = {}
+            params: dict = {}
             if branch:
                 params["sha"] = branch
             if path:

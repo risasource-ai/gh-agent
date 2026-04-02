@@ -1,7 +1,7 @@
 """
 github/files.py
 
-File operations: read, create, update, delete, move, list tree.
+File operations: read, create, update, delete, upsert, list tree.
 Handles base64 encoding/decoding transparently.
 """
 
@@ -63,7 +63,7 @@ def register(mcp, client: GitHubClient, owner: str):
                 f"/repos/{owner}/{repo}/contents/{path}",
                 params=params or None,
             )
-            if f.get("type") != "file":
+            if isinstance(f, list) or f.get("type") != "file":
                 return {"error": True, "message": f"{path} is not a file"}
 
             content = base64.b64decode(f["content"]).decode("utf-8")
@@ -285,7 +285,7 @@ def register(mcp, client: GitHubClient, owner: str):
             )
             tree_sha = branch_data["commit"]["commit"]["tree"]["sha"]
 
-            params = {}
+            params: dict = {}
             if recursive:
                 params["recursive"] = "1"
 

@@ -159,11 +159,7 @@ def register(mcp, client: GitHubClient, owner: str):
             return e.to_dict()
 
     @mcp.tool()
-    def close_issue(
-        repo: str,
-        issue_number: int,
-        reason: str = "completed",
-    ) -> dict:
+    def close_issue(repo: str, issue_number: int, reason: str = "completed") -> dict:
         """
         Close an issue.
 
@@ -184,16 +180,13 @@ def register(mcp, client: GitHubClient, owner: str):
     # ── issue comments ────────────────────────────────────────────────
 
     @mcp.tool()
-    def list_issue_comments(
-        repo: str,
-        issue_number: int,
-        limit: int = 50,
-    ) -> list[dict]:
+    def list_issue_comments(repo: str, issue_number: int, limit: int = 50) -> list[dict]:
         """
         List comments on an issue.
 
         repo: repository name
         issue_number: issue number
+        limit: max comments to return
         """
         try:
             comments = client.paginate(
@@ -224,9 +217,7 @@ def register(mcp, client: GitHubClient, owner: str):
             return e.to_dict()
 
     @mcp.tool()
-    def update_issue_comment(
-        repo: str, comment_id: int, body: str
-    ) -> dict:
+    def update_issue_comment(repo: str, comment_id: int, body: str) -> dict:
         """
         Edit an existing issue comment.
 
@@ -273,9 +264,7 @@ def register(mcp, client: GitHubClient, owner: str):
             return [e.to_dict()]
 
     @mcp.tool()
-    def create_label(
-        repo: str, name: str, color: str, description: str = ""
-    ) -> dict:
+    def create_label(repo: str, name: str, color: str, description: str = "") -> dict:
         """
         Create a new label.
 
@@ -295,9 +284,7 @@ def register(mcp, client: GitHubClient, owner: str):
             return e.to_dict()
 
     @mcp.tool()
-    def add_labels_to_issue(
-        repo: str, issue_number: int, labels: list[str]
-    ) -> list[dict]:
+    def add_labels_to_issue(repo: str, issue_number: int, labels: list[str]) -> list[dict]:
         """
         Add labels to an issue or PR.
 
@@ -316,9 +303,7 @@ def register(mcp, client: GitHubClient, owner: str):
             return [e.to_dict()]
 
     @mcp.tool()
-    def remove_label_from_issue(
-        repo: str, issue_number: int, label: str
-    ) -> dict:
+    def remove_label_from_issue(repo: str, issue_number: int, label: str) -> dict:
         """
         Remove a specific label from an issue or PR.
 
@@ -338,9 +323,7 @@ def register(mcp, client: GitHubClient, owner: str):
     # ── milestones ────────────────────────────────────────────────────
 
     @mcp.tool()
-    def list_milestones(
-        repo: str, state: str = "open", sort: str = "due_on"
-    ) -> list[dict]:
+    def list_milestones(repo: str, state: str = "open", sort: str = "due_on") -> list[dict]:
         """
         List milestones in a repository.
 

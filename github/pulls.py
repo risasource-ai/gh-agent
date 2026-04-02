@@ -35,7 +35,7 @@ def register(mcp, client: GitHubClient, owner: str):
         limit: max results
         """
         try:
-            params = {"state": state, "sort": sort, "direction": direction}
+            params: dict = {"state": state, "sort": sort, "direction": direction}
             if base:
                 params["base"] = base
             if head:
@@ -119,7 +119,7 @@ def register(mcp, client: GitHubClient, owner: str):
         base: change the target base branch
         """
         try:
-            payload = {}
+            payload: dict = {}
             if title:
                 payload["title"] = title
             if body:
@@ -211,17 +211,14 @@ def register(mcp, client: GitHubClient, owner: str):
         pull_number: PR number
         """
         try:
-            import httpx
-            url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pull_number}"
-            headers = {
-                **client._headers,
-                "Accept": "application/vnd.github.diff",
-            }
-            with httpx.Client(headers=headers) as http:
-                response = http.get(url)
-            return {"diff": response.text, "pull_number": pull_number}
-        except Exception as e:
-            return {"error": True, "message": str(e)}
+            diff = client.rest_raw(
+                "GET",
+                f"/repos/{owner}/{repo}/pulls/{pull_number}",
+                accept="application/vnd.github.diff",
+            )
+            return {"diff": diff, "pull_number": pull_number}
+        except GitHubError as e:
+            return e.to_dict()
 
     # ── reviews ───────────────────────────────────────────────────────
 

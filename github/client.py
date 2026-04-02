@@ -31,15 +31,21 @@ class GitHubClient:
         path: str,
         params: dict | None = None,
         body: dict | None = None,
+        accept: str | None = None,
     ) -> dict | list:
         """
         Make a REST API call.
 
         path: e.g. "/repos/{owner}/{repo}/pulls"
+        accept: override Accept header for special responses (e.g. diff, patch)
         Returns parsed JSON or raises with a clear message.
         """
         url = f"{GITHUB_API}{path}"
-        with httpx.Client(headers=self._headers) as http:
+        headers = self._headers.copy()
+        if accept:
+            headers["Accept"] = accept
+
+        with httpx.Client(headers=headers, timeout=30) as http:
             response = http.request(
                 method=method.upper(),
                 url=url,
@@ -60,6 +66,22 @@ class GitHubClient:
 
         return response.json()
 
+    def rest_raw(self, method: str, path: str, accept: str) -> str:
+        """
+        Make a REST call that returns raw text (e.g. diffs, patches).
+        """
+        url = f"{GITHUB_API}{path}"
+        headers = {**self._headers, "Accept": accept}
+        with httpx.Client(headers=headers, timeout=30) as http:
+            response = http.request(method=method.upper(), url=url)
+        if not response.is_success:
+            raise GitHubError(
+                status=response.status_code,
+                message=_extract_error(response),
+                path=path,
+            )
+        return response.text
+
     def paginate(
         self,
         path: str,
@@ -75,7 +97,7 @@ class GitHubClient:
 
         while True:
             url = f"{GITHUB_API}{path}"
-            with httpx.Client(headers=self._headers) as http:
+            with httpx.Client(headers=self._headers, timeout=30) as http:
                 response = http.get(url, params=params)
 
             if not response.is_success:
@@ -111,7 +133,7 @@ class GitHubClient:
         if variables:
             payload["variables"] = variables
 
-        with httpx.Client(headers=self._headers) as http:
+        with httpx.Client(headers=self._headers, timeout=30) as http:
             response = http.post(GITHUB_GRAPHQL, json=payload)
 
         if not response.is_success:

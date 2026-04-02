@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gh-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Full GitHub control as an MCP server"
 requires-python = ">=3.11"
 dependencies = [
@@ -23,4 +23,8 @@ packages = ["github"]
 dev-dependencies = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
